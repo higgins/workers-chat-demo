@@ -243,9 +243,6 @@ export class ChatRoom {
     let closeOrErrorHandler = evt => {
       session.quit = true;
       this.sessions = this.sessions.filter(member => member !== session);
-      if (session.name) {
-        this.broadcast({quit: session.name});
-      }
     };
     webSocket.addEventListener("close", closeOrErrorHandler);
     webSocket.addEventListener("error", closeOrErrorHandler);

@@ -1,18 +1,7 @@
 <!DOCTYPE html>
-<!--
-  THIS IS NOT THE INTERESTING FILE
-
-  This is just some UI code. There's nothing interesting and unique in this file. The interesting
-  thing about this demo is the server side, which is in chat.mjs.
-
-  WARNING: This was written by a systems engineer, not a web developer. It's probably bad.
--->
-
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<!--===================================================================================-->
-<!-- Inline style to avoid an extra round trip before the page can render. -->
 <style type="text/css">
 * {
   box-sizing: border-box;
@@ -79,21 +68,6 @@ p:last-of-type {
   border-top: none;
   padding-left: 32px;
   outline: none;
-}
-#chatroom::before {
-  z-index: 1;
-  display: block;
-  content: ">";
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
-  text-align: center;
-  font-weight: bold;
-  color: #888;
-  -webkit-text-stroke-width: 2px;
 }
 
 #name-form {
@@ -170,10 +144,6 @@ p:last-of-type {
 }
 
 </style>
-
-<!--===================================================================================-->
-<!-- The actual HTML. There is not much of it. -->
-
   </head>
   <body>
     <form id="chatroom" action="/fake-form-action">
@@ -183,10 +153,6 @@ p:last-of-type {
       <div id="roster"></div>
     </form>
   </body>
-
-<!--===================================================================================-->
-<!-- Client-side JavaScript code for the app. -->
-
 <script type="text/javascript">
 let currentWebSocket = null;
 
@@ -197,16 +163,9 @@ let roster = document.querySelector("#roster");
 
 // Is the chatlog scrolled to the bottom?
 let isAtBottom = true;
-
 let username;
 let roomname;
-
 let hostname = window.location.host;
-if (hostname == "") {
-  // Probably testing the HTML locally.
-  hostname = "edge-chat-demo.cloudflareworkers.com";
-}
-
 let wroteWelcomeMessages = false;
 
 function join() {
@@ -253,30 +212,8 @@ function join() {
   ws.addEventListener("message", event => {
     console.log('-----------------ws message received!', event);
     let data = JSON.parse(event.data);
-
-    if (data.error) {
-      addChatMessage(null, "* Error: " + data.error);
-    } else if (data.ready) {
-      // All pre-join messages have been delivered.
-      if (!wroteWelcomeMessages) {
-        wroteWelcomeMessages = true;
-        addChatMessage(null,
-            "* This is a demo app built with Cloudflare Workers Durable Objects. The source code " +
-            "can be found at: https://github.com/cloudflare/workers-chat-demo");
-        addChatMessage(null,
-            "* WARNING: Participants in this chat are random people on the internet. " +
-            "Names are not authenticated; anyone can pretend to be anyone. The people " +
-            "you are chatting with are NOT Cloudflare employees. Chat history is saved.");
-        if (roomname.length == 64) {
-          addChatMessage(null,
-              "* This is a private room. You can invite someone to the room by sending them the URL.");
-        } else {
-          addChatMessage(null,
-              "* Welcome to #" + roomname + ". Say hi!");
-        }
-      }
-    } else {
-      addChatMessage("FIXME", `${data.sup_id}:${data.message}`);
+    if (data.sup_id && data.message) {
+      addChatMessage(data.sup_id, data.message);
     }
   });
 
@@ -291,20 +228,28 @@ function join() {
   });
 }
 
-function addChatMessage(name, text) {
-  let p = document.createElement("p");
-  if (name) {
-    let tag = document.createElement("span");
-    tag.className = "username";
-    tag.innerText = name + ": ";
-    p.appendChild(tag);
-  }
-  p.appendChild(document.createTextNode(text));
-
+function addChatMessage(sup_id, message) {
+  let audio = document.createElement("audio");
+  audio.src = `https://assets.sup.audio/sups/${sup_id}.m4a`;
+  audio.autoplay = true;
+  audio.load();
+  audio.addEventListener("load", function() { audio.play() }, true);
   // Append the new chat line, making sure that if the chatlog was scrolled to the bottom
   // before, it remains scrolled to the bottom, and otherwise the scroll position doesn't
   // change.
-  chatlog.appendChild(p);
+  chatlog.appendChild(audio);
+
+  const elem = document.createElement("div");
+  elem.textContent = message;
+  elem.style.position = "absolute";
+  elem.style.left = Math.round(Math.random() * window.innerWidth) + "px";
+  elem.style.top = Math.round(Math.random() * window.innerHeight) + "px";
+
+  const sign = Math.floor(Math.random() * 10) % 2 == 0 ? 1 : -1;
+  const rotation = sign * Math.floor(Math.random() * 45);
+  elem.style.transform = `rotate(${rotation}deg)`
+  document.body.appendChild(elem);
+
   if (isAtBottom) {
     chatlog.scrollBy(0, 1e8);
   }
